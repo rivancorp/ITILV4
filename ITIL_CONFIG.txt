@@ -13,14 +13,31 @@ config t
    login local
 Int Vlan 1
      no shutdown
-	 ip add 10.12.1.8 255.255.255.0
+	 ip add 10.m.1.4 255.255.255.0
 	 description MGMTDATA
-Int Vlan 10
+Int Vlan 50
      no shutdown
-	 ip add 10.12.10.8 255.255.255.0
+	 ip add 10.m.50.4 255.255.255.0
+	 description CCTV
+Int Vlan 100
+     no shutdown
+	 ip add 10.m.100.4 255.255.255.0
 	 description WIRELESS
+Int Fa 0/0
+       no shut
+       ip add 200.0.0.m 255.255.255.0
 	end
 Conf t
+vlan 50
+name CCTV
+VLAN 100
+name callmanager
+Int Fa 0/1/1
+  switchport mode access
+  switchport access vlan 50
+Int Fa 0/1/2
+  switchport mode access
+  switchport access vlan 50
 Int Fa 0/1/4
   switchport mode access
   switchport access vlan 100
@@ -38,34 +55,46 @@ end
 !!!@@DHCP
 
 config t
-ip dhcp excluded-add 10._.1.1 10._.1.150
-ip dhcp pool vlanone
- network 10._.1.0 255.255.255.0
- default-router 10._.1.8
- domain-name ITIL.com
+ip dhcp excluded-add 10.m.1.1 10.m.1.100
+ip dhcp pool VLAN1DATA
+ network 10.m.1.0 255.255.255.0
+ default-router 10.m.1.4
+ domain-name ENCOR.COM
  dns-server 8.8.8.8
- option 150 ip 10._.1.8
+ option 150 ip 10.m.1.4
 end
 
-conf t
-ip dhcp pool WIFIDATA
-   network 10._.10.0 255.255.255.0
-   default-router 10._.10.1
-   domain-name WIFIDATA.COM
-   dns-server 10._.1.10
+config t
+ip dhcp excluded-add 10.m.50.1 10.m.50.100
+ip dhcp pool VLAN50cctv
+ network 10.m.50.0 255.255.255.0
+ default-router 10.m.50.4
+ domain-name CCTV.COM
+ dns-server 8.8.8.8
+ option 150 ip 10.m.50.4
+end
+
+config t
+ip dhcp excluded-add 10.m.100.1 10.m.100.100
+ip dhcp pool VLAN100-CM
+ network 10.m.100.0 255.255.255.0
+ default-router 10.m.100.4
+ domain-name CALLMANAGER.COM
+ dns-server 8.8.8.8
+ option 150 ip 10.m.100.4
 end
 
 
 @!!ANALOG PHONE
 configure terminal
 dial-peer voice 1 pots
-   destination-pattern 8001111
+   destination-pattern M00
    port 0/0/0
 dial-peer voice 2 pots
-   destination-pattern 8002222
+   destination-pattern M01
    port 0/0/1
 end
-
+csim start m00
 
 
 @@@
@@ -77,7 +106,7 @@ telephony-service
    no auto-reg-ephone
    max-ephones 12
    max-dn 48
-   ip source-address 10._.1.8 port 2000
+   ip source-address 10.m.100.4 port 2000
    create cnf-files
 ephone-dn 1
   number _11
@@ -135,7 +164,7 @@ config t
 dial-peer voice 69 voip
  service rivanaa out-bound
  destination-pattern _69
- session target ipv4:10._.1.8
+ session target ipv4:10._.100.4
  incoming called-number _69
  dtmf-relay h245-alphanumeric
  codec g711ulaw
@@ -170,12 +199,30 @@ application
   param number-of-hunt-grps 4
 end
 
+ALLOWINCOMMING/OUTGOINGS CALL:
+configure terminal
+voice service voip
+ip address trusted list
+ipv4 0.0.0.0 0.0.0.0
+dial-peer voice K1 Voip
+   destination-pattern K1..
+   session target ipv4:10.K1.100.4
+   codec g711ULAW
+dial-peer voice K2 Voip
+   destination-pattern K2..
+   session target ipv4:10.K2.100.4
+   codec g711ULAW
+dial-peer voice K3 Voip
+   destination-pattern K3..
+   session target ipv4:10.K3.100.4
+   codec g711ULAW
 
-
-
-
-
-
+config t
+router eigrp 100
+network 10.0.0.0
+network 200.0.0.0
+end
+sh ip route eigrp
 
 
 
